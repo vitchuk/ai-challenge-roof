@@ -12,6 +12,7 @@
 - `server/app/mcp_client.py` — stdio-клиент MCP (официальный Python SDK), схемы инструментов.
 - `server/app/chat.py` — маршрутизация `/help` (RAG) и обычных сообщений, агентный цикл с инструментами MCP, цитаты.
 - `server/app/chat_store.py` — SQLite: чаты и сообщения (время ответа, источники, вызовы инструментов).
+- `server/scripts/pr_review.py` — AI-ревью PR целевого репо: diff + RAG (доки+код) → комментарий и вердикт; запускается из GitHub Actions.
 - `server/config.json` — все настройки, кроме секретов (в т.ч. `agent.tools_whitelist`, `repo`).
 - `client/src/` — Vue-клиент: `views/ChatView.vue`, `views/SettingsView.vue`, `components/` (в т.ч. `RepoTreeView.vue`, `BranchGraph.vue`, `ToolCallsPanel.vue`).
 
@@ -22,6 +23,8 @@
 - Клиент: `npm run dev` из `client/`; проверка типов и сборка: `npm run build`.
 - Переиндексация: кнопка в «Настройках» или `POST /api/rag/rebuild`.
 - Статус: `GET /api/status`.
+- Локальный dry-run AI-ревью PR (нужны Ollama и `DEEPSEEK_API_KEY`):
+  `server\scripts\pr_review.py --repo-dir <клон> --base <sha> --head <sha> --pr-number <n> --repo owner/name --dry-run --index-dir <tmp>`.
 
 ## Gotchas
 
@@ -44,4 +47,5 @@
   (`paths`), стили импортируются как `@grapoza/vue-tree/css`.
 - Mermaid подключается динамическим `import()` только при отрисовке графа ветвей.
 - Секреты только в `.env` (не в git); клиенту они не отдаются.
+- `ai-review.yml` (в целевом репо) чекаутит этот репо по `ref:` — сейчас `day32`, менять при переносе на стабильную ветку.
 - `server/data/` и `tools/` в gitignore.
