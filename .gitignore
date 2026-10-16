@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+tools/
+client/node_modules/
+client/dist/
+server/data/
+.vite/
+*.log

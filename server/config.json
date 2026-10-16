@@ -1,0 +1,77 @@
+{
+  "github": {
+    "owner": "vitchuk",
+    "repo": "ai-challenge-mcptools",
+    "branch": "main",
+    "root_files": ["README.md", "AGENTS.md"],
+    "docs_dir": "docs",
+    "docs_ext": [".md"],
+    "fallback_docs": [
+      "API.md",
+      "ARCHITECTURE.md",
+      "BACKEND.md",
+      "CLIENT.md",
+      "RAG.md",
+      "TESTING.md",
+      "GOTCHAS.md",
+      "RECIPES.md",
+      "llm-control-questions.md"
+    ]
+  },
+  "rag": {
+    "strategy": "fixed",
+    "ollama_base_url": "http://127.0.0.1:11434",
+    "embedding_model": "qwen3-embedding:0.6b",
+    "min_tokens": 500,
+    "max_tokens": 1000,
+    "overlap_tokens": 150,
+    "chars_per_token": 3.0,
+    "min_chunk_tokens": 50,
+    "embed_batch_size": 16,
+    "embed_timeout_sec": 300,
+    "chat_top_k": 4,
+    "output_dir": "server/data/rag/fixed"
+  },
+  "llm": {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "allowed_models": ["deepseek-chat", "deepseek-reasoner", "deepseek-flash", "deepseek-v4-pro"],
+    "base_url": "https://api.deepseek.com",
+    "history_limit": 20,
+    "rewrite_history_limit": 6,
+    "answer_temperature": 0.3,
+    "answer_max_tokens": 2000,
+    "rewrite_temperature": 0.0,
+    "rewrite_max_tokens": 200,
+    "rewrite_max_chars": 400
+  },
+  "mcp": {
+    "github": {
+      "name": "github",
+      "description": "GitHub MCP Server (github/github-mcp-server)",
+      "command": "tools/github-mcp-server.exe",
+      "args": ["stdio", "--toolsets", "repos,context,git"],
+      "startup_timeout_sec": 90,
+      "call_timeout_sec": 120
+    }
+  },
+  "agent": {
+    "tools_whitelist": [
+      "get_repository_tree",
+      "get_file_contents",
+      "list_branches",
+      "list_commits"
+    ],
+    "max_iterations": 8,
+    "tool_result_max_chars": 8000
+  },
+  "repo": {
+    "cache_ttl_sec": 300,
+    "graph_branches_limit": 5,
+    "graph_commits_per_branch": 10
+  },
+  "ui": {
+    "top_k_min": 1,
+    "top_k_max": 10
+  }
+}
