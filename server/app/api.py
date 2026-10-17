@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from . import chat, chat_store, config, indexer, llm, rag, repo_service, state
+from . import chat, chat_store, config, indexer, llm, pr_service, rag, repo_service, state
 
 router = APIRouter(prefix="/api")
 
@@ -159,3 +160,75 @@ async def repo(request: Request, refresh: bool = False) -> dict:
         raise HTTPException(
             status_code=502, detail=f"Не удалось получить данные репозитория: {exc}"
         ) from exc
+
+
+def _pr_changes(pr: dict, seen: dict | None, baseline: bool) -> list[str]:
+    if seen is None:
+        return [] if baseline else ["new"]
+    changes: list[str] = []
+    if seen["head_sha"] != pr["head_sha"]:
+        changes.append("push")
+    review_updated = pr["review"]["updated_at"] if pr["review"] else None
+    if review_updated and review_updated != seen["comment_updated_at"]:
+        changes.append("review")
+    return changes
+
+
+def _raise_pr_error(exc: Exception, prefix: str) -> HTTPException:
+    if isinstance(exc, pr_service.PrNotFound):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, pr_service.PrUpstreamError):
+        return HTTPException(status_code=502, detail=f"{prefix}: {exc}")
+    if isinstance(exc, pr_service.PrServiceError):
+        return HTTPException(status_code=400, detail=str(exc))
+    return HTTPException(status_code=502, detail=f"{prefix}: {exc}")
+
+
+@router.get("/prs")
+async def list_prs() -> dict:
+    cfg = config.load_config()
+    try:
+        prs = await pr_service.list_open_prs()
+    except Exception as exc:  # noqa: BLE001
+        raise _raise_pr_error(exc, "Не удалось получить список PR") from exc
+
+    seen = {row["pr_number"]: row for row in chat_store.list_pr_seen()}
+    baseline = not seen
+    enriched: list[dict] = []
+    for pr in prs:
+        changes = _pr_changes(pr, seen.get(pr["number"]), baseline)
+        if baseline and "new" not in changes:
+            chat_store.upsert_pr_seen(
+                pr["number"],
+                pr["head_sha"],
+                pr["review"]["updated_at"] if pr["review"] else None,
+            )
+        enriched.append({**pr, "changes": changes})
+
+    return {
+        "prs": enriched,
+        "poll_interval_sec": cfg["pr"]["poll_interval_sec"],
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/prs/{number}")
+async def get_pr(number: int, refresh: bool = False) -> dict:
+    try:
+        detail = await pr_service.get_pr_detail(number, refresh=refresh)
+    except Exception as exc:  # noqa: BLE001
+        raise _raise_pr_error(exc, f"Не удалось получить PR #{number}") from exc
+    chat_store.upsert_pr_seen(
+        number,
+        detail["head_sha"],
+        detail["review"]["updated_at"] if detail["review"] else None,
+    )
+    return detail
+
+
+@router.post("/prs/{number}/rerun")
+async def rerun_pr(number: int) -> dict:
+    try:
+        return await pr_service.rerun_review(number)
+    except Exception as exc:  # noqa: BLE001
+        raise _raise_pr_error(exc, f"Не удалось запустить ревью PR #{number}") from exc

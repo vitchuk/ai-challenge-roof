@@ -3,6 +3,8 @@ import type {
   ChatSummary,
   CommandInfo,
   Message,
+  PrDetail,
+  PrList,
   RepoOverview,
   Settings,
   Status,
@@ -66,4 +68,18 @@ export function sendMessage(chatId: string, message: string): Promise<ChatRespon
 export function getRepo(refresh = false): Promise<RepoOverview> {
   const suffix = refresh ? '?refresh=1' : ''
   return request(`/api/repo${suffix}`)
+}
+
+export function getPrs(refresh = false): Promise<PrList> {
+  const suffix = refresh ? '?refresh=1' : ''
+  return request(`/api/prs${suffix}`)
+}
+
+export function getPr(number: number, refresh = false): Promise<PrDetail> {
+  const suffix = refresh ? '?refresh=1' : ''
+  return request(`/api/prs/${number}${suffix}`)
+}
+
+export function rerunPr(number: number): Promise<{ ok: boolean }> {
+  return request(`/api/prs/${number}/rerun`, { method: 'POST' })
 }

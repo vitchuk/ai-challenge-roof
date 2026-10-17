@@ -46,6 +46,12 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS pr_seen (
+                pr_number INTEGER PRIMARY KEY,
+                head_sha TEXT NOT NULL,
+                comment_updated_at TEXT,
+                viewed_at TEXT NOT NULL
+            );
             """
         )
         _migrate(connection)
@@ -184,3 +190,35 @@ def recent_history(chat_id: str, limit: int) -> list[dict]:
         ).fetchall()
     history = [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
     return [item for item in history if item["role"] in ("user", "assistant")]
+
+
+def list_pr_seen() -> list[dict]:
+    with _connect() as connection:
+        rows = connection.execute(
+            "SELECT pr_number, head_sha, comment_updated_at, viewed_at FROM pr_seen"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_pr_seen(pr_number: int) -> dict | None:
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT pr_number, head_sha, comment_updated_at, viewed_at FROM pr_seen WHERE pr_number = ?",
+            (pr_number,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def upsert_pr_seen(pr_number: int, head_sha: str, comment_updated_at: str | None) -> None:
+    with _connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO pr_seen (pr_number, head_sha, comment_updated_at, viewed_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(pr_number) DO UPDATE SET
+                head_sha = excluded.head_sha,
+                comment_updated_at = excluded.comment_updated_at,
+                viewed_at = excluded.viewed_at
+            """,
+            (pr_number, head_sha, comment_updated_at, _now()),
+        )

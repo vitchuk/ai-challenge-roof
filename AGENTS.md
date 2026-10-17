@@ -11,10 +11,11 @@
 - `server/app/indexer.py` — получение документов через GitHub MCP и сборка индекса.
 - `server/app/mcp_client.py` — stdio-клиент MCP (официальный Python SDK), схемы инструментов.
 - `server/app/chat.py` — маршрутизация `/help` (RAG) и обычных сообщений, агентный цикл с инструментами MCP, цитаты.
-- `server/app/chat_store.py` — SQLite: чаты и сообщения (время ответа, источники, вызовы инструментов).
+- `server/app/chat_store.py` — SQLite: чаты и сообщения (время ответа, источники, вызовы инструментов); таблица `pr_seen` — «просмотрено» для PR-центра.
+- `server/app/pr_service.py` — GitHub REST: список/детали PR, diff, комментарий AI-ревью, check-runs, `workflow_dispatch`.
 - `server/scripts/pr_review.py` — AI-ревью PR целевого репо: diff + RAG (доки+код) → комментарий и вердикт; запускается из GitHub Actions.
 - `server/config.json` — все настройки, кроме секретов (в т.ч. `agent.tools_whitelist`, `repo`).
-- `client/src/` — Vue-клиент: `views/ChatView.vue`, `views/SettingsView.vue`, `components/` (в т.ч. `RepoTreeView.vue`, `BranchGraph.vue`, `ToolCallsPanel.vue`).
+- `client/src/` — Vue-клиент: `views/ChatView.vue`, `views/SettingsView.vue`, `components/` (в т.ч. `RepoTreeView.vue`, `BranchGraph.vue`, `ToolCallsPanel.vue`, `PrPanel.vue`).
 
 ## Запуск и проверки
 
@@ -47,5 +48,9 @@
   (`paths`), стили импортируются как `@grapoza/vue-tree/css`.
 - Mermaid подключается динамическим `import()` только при отрисовке графа ветвей.
 - Секреты только в `.env` (не в git); клиенту они не отдаются.
+- Данные о PR идут напрямую через GitHub REST (`pr_service.py`), минуя MCP; для кнопки «Перезапустить
+  ревью» PAT должен иметь право `actions:write` (классический PAT — scope `repo`).
+- Опрос PR инициирует клиент (`App.vue`), период — `pr.poll_interval_sec` (сек); «просмотрено»
+  фиксирует `GET /api/prs/{n}` в таблицу `pr_seen`; первый опрос при пустой `pr_seen` — тихий baseline.
 - `ai-review.yml` (в целевом репо) чекаутит этот репо по `ref:` — сейчас `day32`, менять при переносе на стабильную ветку.
 - `server/data/` и `tools/` в gitignore.

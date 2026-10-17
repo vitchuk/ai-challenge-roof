@@ -70,6 +70,13 @@
     "graph_branches_limit": 5,
     "graph_commits_per_branch": 10
   },
+  "pr": {
+    "state": "open",
+    "cache_ttl_sec": 30,
+    "poll_interval_sec": 300,
+    "diff_max_chars": 100000,
+    "workflow_file": "ai-review.yml"
+  },
   "ui": {
     "top_k_min": 1,
     "top_k_max": 10

@@ -5,11 +5,22 @@ import BranchGraph from '../components/BranchGraph.vue'
 import ChatSidebar from '../components/ChatSidebar.vue'
 import CommandAutocomplete from '../components/CommandAutocomplete.vue'
 import Markdownish from '../components/Markdownish.vue'
+import PrPanel from '../components/PrPanel.vue'
 import RepoTreeView from '../components/RepoTreeView.vue'
 import SourcesPanel from '../components/SourcesPanel.vue'
 import ToolCallsPanel from '../components/ToolCallsPanel.vue'
 import TypingDots from '../components/TypingDots.vue'
-import type { ChatSummary, CommandInfo, Message } from '../types'
+import type { ChatSummary, CommandInfo, Message, PrSummary } from '../types'
+
+const props = defineProps<{
+  prs: PrSummary[] | null
+  newCount: number
+  secondsLeft: number
+  prLoading: boolean
+  prError: string
+}>()
+
+const emit = defineEmits<{ (event: 'refresh-prs'): void }>()
 
 const chats = ref<ChatSummary[]>([])
 const activeId = ref<string | null>(null)
@@ -172,6 +183,17 @@ onMounted(async () => {
     />
 
     <section class="flex min-w-0 flex-1 flex-col">
+      <div class="px-8 pt-4">
+        <PrPanel
+          :prs="props.prs"
+          :new-count="props.newCount"
+          :seconds-left="props.secondsLeft"
+          :loading="props.prLoading"
+          :error="props.prError"
+          @refresh="emit('refresh-prs')"
+        />
+      </div>
+
       <div ref="messagesEl" class="min-h-0 flex-1 space-y-4 overflow-y-auto px-8 py-6">
         <p v-if="!messages.length && !loading" class="mx-auto max-w-md pt-16 text-center text-sm text-mocha">
           Задайте вопрос по документации проекта командой <span class="font-mono text-caramel-dark">/help</span>.

@@ -154,3 +154,62 @@ export interface Settings {
   ui: { top_k_min: number; top_k_max: number }
   rag_params: RagParams
 }
+
+export type PrChange = 'new' | 'push' | 'review'
+
+export interface PrCheck {
+  name: string
+  status: string
+  conclusion: string | null
+  html_url: string | null
+}
+
+export interface PrReviewBrief {
+  body: string
+  updated_at: string
+  verdict: 'issues' | 'clean' | null
+}
+
+export interface PrSummary {
+  number: number
+  title: string
+  author: string
+  head_branch: string
+  head_sha: string
+  base_branch: string
+  updated_at: string
+  html_url: string
+  check: PrCheck | null
+  review: PrReviewBrief | null
+  changes: PrChange[]
+}
+
+export interface PrList {
+  prs: PrSummary[]
+  poll_interval_sec: number
+  fetched_at: string
+}
+
+export interface PrFile {
+  filename: string
+  status: string
+  additions: number
+  deletions: number
+}
+
+export interface PrDetail {
+  number: number
+  title: string
+  state: string
+  draft: boolean
+  author: string
+  head_branch: string
+  head_sha: string
+  base_branch: string
+  updated_at: string
+  html_url: string
+  files: PrFile[]
+  diff: { text: string; truncated: boolean }
+  check: PrCheck | null
+  review: PrReviewBrief | null
+}
